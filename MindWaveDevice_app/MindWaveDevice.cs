@@ -15,17 +15,12 @@ namespace MindWaveDevice_app
     {
         TcpClient client;
         Stream stream;
-        int bytesRead;
-        byte[] myWriteBuffer = Encoding.ASCII.GetBytes(@"{""enableRawOutput"": false,""format"": ""Json""}");
-        //создать мьютекс
         Mutex mutex;
-        //переменная для потока
         Thread thread;
         //контейнер данных
-        public BrainData brainData { get; set; }
-
-        byte[] buffer = new byte[2048];
+        public BrainData brainData { get; private set; }
         public bool status { get; private set; }
+
         public MindWaveDevice() //конструктор
         {
             status = false;
@@ -33,24 +28,20 @@ namespace MindWaveDevice_app
         }
         public void ConnectDevice()
         {
-            try
+            client = new TcpClient("127.0.0.1", 13854);
+            status = client.Connected;
+            stream = client.GetStream();
+
+            // отправка пакета конфигурации на TGC
+            byte[] myWriteBuffer = Encoding.ASCII.GetBytes(@"{""enableRawOutput"": false,""format"": ""Json""}");
+            if (stream.CanWrite)
             {
-                client = new TcpClient("127.0.0.1", 13854);
-                stream = client.GetStream();
-
-                // отправка пакета конфигурации на TGC
-                if (stream.CanWrite)
-                {
-                    stream.Write(myWriteBuffer, 0, myWriteBuffer.Length);
-                }
-
-                //запуск потока
-                thread = new Thread(ReadData);
-                thread.Start();
+                stream.Write(myWriteBuffer, 0, myWriteBuffer.Length);
             }
-            catch (SocketException) { }
 
-            status = true;
+            //запуск потока
+            thread = new Thread(ReadData);
+            thread.Start();
         }
         public void DisconnectDevice()
         {
@@ -64,6 +55,8 @@ namespace MindWaveDevice_app
 
         void ReadData()
         {
+            int bytesRead;
+            byte[] buffer = new byte[2048];
             while (true)
             {
                 bytesRead = stream.Read(buffer, 0, 2048);

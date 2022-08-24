@@ -7,7 +7,16 @@ namespace MindWaveDevice_app
         static void Main(string[] args)
         {
             var mwDev = new MindWaveDevice();
-            mwDev.ConnectDevice();
+            try
+            {
+                mwDev.ConnectDevice();
+            }
+            catch (Exception) 
+            {
+                Console.WriteLine("Подключение не удалось");
+                return;
+            }
+            
             while (mwDev.status)
             {
                 var data = mwDev.brainData;
